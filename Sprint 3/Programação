@@ -1,0 +1,127 @@
+#projeto de reservatório de água de industria 4.0
+
+# importar bibliotecas
+# quem sera utilizado
+
+import dht
+from machine import Pin, ADC, time_pulse_us,I2C, SoftI2C, PWM
+from time import sleep, ticks_ms, ticks_diff
+from i2c_lcd import I2cLcd
+
+
+
+# configuracao
+# onde estao os itens/componentes
+
+
+#led:
+
+led = Pin(32,Pin.OUT)
+
+#sensor umid:
+
+#sensor_dht = dht.DHT22(26)
+
+#Relé:
+
+rele=Pin(14, Pin.OUT)
+
+i2c = SoftI2C(scl=Pin(22), sda=Pin(21), freq=400000) # connect scl to GPIO 22, sda to GPIO 21
+lcd = I2cLcd(i2c, 0x27, 2, 16)
+
+#Buzzer:
+
+pino_buzzer = Pin(15)
+buzzer = PWM(pino_buzzer)
+buzzer.duty(0)
+
+#botao:
+
+sensor_nivel = Pin(34,Pin.IN, Pin.PULL_UP)
+botao2 = Pin (33, Pin.IN, Pin.PULL_DOWN)
+
+
+# programa
+# o que / como ira acontecer
+
+def desligar_rele(rele):
+    rele.value(not rele.value())
+    print(f"rele: {rele.value()}", end=" - ")
+    if rele.value() == 0:
+        print("Desligado")
+
+def ligar_rele(rele):
+    rele.value(not rele.value())
+    print(f"rele: {rele.value()}", end=" - ")
+    if rele.value() == 1:
+        print("Ligado")
+ 
+passou = 0
+
+while True:
+    #lcd:
+    #nivel agua
+    estado_sensor_nivel = sensor_nivel.value()
+
+    print(f"Bomba: {estado_sensor_nivel}")
+
+    if estado_sensor_nivel == 1:
+        rele.value(sensor_nivel.value())
+        while sensor_nivel.value() ==  1:
+            # simulando que a bomba ligou sozinha pelo nivel
+            print("Bomba ligada")
+            if passou == 0:
+                passou = 1
+                lcd.clear()
+                lcd.move_to(0, 0)
+                lcd.putstr("Bomba ligou")
+            sleep(0.1)
+        rele.value(sensor_nivel.value())
+        #rele.value(not rele.value())
+        passou = 0
+        lcd.clear()
+        lcd.move_to(0, 0)
+        lcd.putstr("Bomba desligou")
+
+
+    #umid
+    #sensor_dht.measure()
+    #recuperar valores
+    #umidade = sensor_dht.humidity()
+    estado_botao2 = botao2.value()
+    print(estado_botao2)
+    sleep(0.1)
+    if estado_botao2 == 1:       
+        #if umidade >= 1:
+            lcd.clear()
+            lcd.move_to(0,0)
+            lcd.putstr("Ha presenca de umidade")
+            sleep(2)
+            lcd.clear()
+            lcd.move_to(0,0)
+            lcd.putstr("O alerta foi ativado")
+            sleep(2)
+            #buzzer
+            buzzer.duty(0)
+            buzzer.freq(400)
+            buzzer.duty(512)
+            sleep(5) 
+            buzzer.duty(0)
+
+            lcd.clear()
+            lcd.move_to(0,0)
+            lcd.putstr("Verifique se ha alguma alteracao ")
+            sleep(1.5)
+            lcd.clear()
+            lcd.move_to(0,0)
+            lcd.putstr("fora do normal")
+            sleep(2)
+            lcd.clear()
+
+        #if umidade <= 0:
+            #lcd.move_to(0,0)
+            #lcd.clear()
+            #lcd.putstr("Não há presença de umidade")
+        if estado_botao2 == 0:
+            buzzer.duty(0)
+            
